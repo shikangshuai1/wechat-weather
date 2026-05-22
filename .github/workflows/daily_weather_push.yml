@@ -42,7 +42,7 @@ jobs:
       - name: 调用 AI 生成内容
         id: ai_content
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
           python ai_content_generator.py
 

@@ -19,19 +19,15 @@ def load_weather():
         return json.load(f)
 
 def call_llm(prompt):
-    """调用 OpenRouter API"""
-    api_key = os.environ.get("OPENROUTER_API_KEY")
+    """调用 DeepSeek API"""
+    api_key = os.environ.get("DEEPSEEK_API_KEY")
     if not api_key:
-        # 如果没有 API key，尝试用 Gemini（原项目方式）
-        gemini_key = os.environ.get("GEMINI_API_KEY")
-        if gemini_key:
-            return call_gemini(prompt, gemini_key)
-        raise Exception("未设置 OPENROUTER_API_KEY 或 GEMINI_API_KEY")
+        raise Exception("未设置 DEEPSEEK_API_KEY，请在 GitHub Secrets 中配置")
     
-    url = "https://openrouter.ai/api/v1/chat/completions"
+    url = "https://api.deepseek.com/chat/completions"
     
     data = json.dumps({
-        "model": "google/gemini-2.0-flash-001",
+        "model": "deepseek-chat",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.8,
         "max_tokens": 500
@@ -41,8 +37,7 @@ def call_llm(prompt):
         url, data=data,
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
-            "HTTP-Referer": "https://github.com/wechat-weather"
+            "Authorization": f"Bearer {api_key}"
         }
     )
     
@@ -50,32 +45,6 @@ def call_llm(prompt):
     result = json.loads(resp.read().decode('utf-8'))
     
     return result["choices"][0]["message"]["content"]
-
-
-def call_gemini(prompt, api_key):
-    """调用 Google Gemini API（备用）"""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
-    
-    data = json.dumps({
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0.8,
-            "maxOutputTokens": 500
-        }
-    }).encode('utf-8')
-    
-    req = urllib.request.Request(
-        url, data=data,
-        headers={"Content-Type": "application/json"}
-    )
-    
-    resp = urllib.request.urlopen(req, timeout=30)
-    result = json.loads(resp.read().decode('utf-8'))
-    
-    try:
-        return result["candidates"][0]["content"]["parts"][0]["text"]
-    except (KeyError, IndexError):
-        raise Exception(f"Gemini API 返回异常: {json.dumps(result, ensure_ascii=False)}")
 
 
 def parse_ai_response(response_text):
