@@ -1,0 +1,66 @@
+name: 每日天气推送 - 新乡
+
+on:
+  schedule:
+    # 每天北京时间 07:00（UTC 23:00）
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+    # 可手动触发测试
+    inputs:
+      mode:
+        description: '推送模式'
+        required: false
+        default: 'morning'
+        type: choice
+        options:
+          - morning
+
+jobs:
+  weather_push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 获取天气数据
+        id: weather
+        env:
+          SEND_KEY: ${{ secrets.SEND_KEY }}
+        run: |
+          python daily_weather_push.py
+
+      - name: 读取天气数据
+        id: weather_data
+        run: |
+          echo "WEATHER_JSON=$(cat weather_data.json)" >> $GITHUB_ENV
+
+      - name: 调用 AI 生成内容
+        id: ai_content
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          python ai_content_generator.py
+
+      - name: 发送推送
+        id: send_push
+        env:
+          SEND_KEY: ${{ secrets.SEND_KEY }}
+        run: |
+          python push_to_wechat.py
+
+      - name: 显示结果
+        if: always()
+        run: |
+          if [ -f push_result.json ]; then
+            echo "推送结果："
+            cat push_result.json
+          fi
+          if [ -f error.log ]; then
+            echo "错误信息："
+            cat error.log
+          fi
