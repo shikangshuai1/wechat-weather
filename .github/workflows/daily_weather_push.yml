@@ -5,7 +5,6 @@ on:
     # 每天北京时间 07:00（UTC 23:00）
     - cron: '0 23 * * *'
   workflow_dispatch:
-    # 可手动触发测试
     inputs:
       mode:
         description: '推送模式'
@@ -27,20 +26,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: 获取天气数据
-        id: weather
-        env:
-          SEND_KEY: ${{ secrets.SEND_KEY }}
-        run: |
-          python daily_weather_push.py
-
-      - name: 读取天气数据
-        id: weather_data
-        run: |
-          echo "WEATHER_JSON=$(cat weather_data.json)" >> $GITHUB_ENV
-
-      - name: 调用 AI 生成内容
-        id: ai_content
+      - name: 获取天气数据并生成 AI 内容
+        id: generate
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
@@ -56,11 +43,15 @@ jobs:
       - name: 显示结果
         if: always()
         run: |
-          if [ -f push_result.json ]; then
-            echo "推送结果："
-            cat push_result.json
-          fi
+          echo "=== 天气数据 ==="
+          cat weather_data.json 2>/dev/null || echo "无天气数据"
+          echo ""
+          echo "=== AI 内容 ==="
+          cat ai_content.json 2>/dev/null || echo "无 AI 内容"
+          echo ""
+          echo "=== 推送结果 ==="
+          cat push_result.json 2>/dev/null || echo "无推送结果"
           if [ -f error.log ]; then
-            echo "错误信息："
+            echo "=== 错误信息 ==="
             cat error.log
           fi
